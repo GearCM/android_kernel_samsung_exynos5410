@@ -42,7 +42,7 @@ static unsigned long dbg_flags = 0;
 module_param(dbg_flags, ulong, S_IRUGO | S_IWUSR | S_IWGRP);
 MODULE_PARM_DESC(dbg_flags, "sipc iodevice debug flags\n");
 
-static int fd_waketime = (6 * HZ);
+static int fd_waketime = (4 * HZ);
 module_param(fd_waketime, int, S_IRUGO);
 MODULE_PARM_DESC(fd_waketime, "fd wake lock timeout");
 
