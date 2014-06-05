@@ -22,7 +22,6 @@
 #include <linux/regulator/machine.h>
 #include <linux/mfd/samsung/core.h>
 #include <linux/mfd/samsung/s2mps11.h>
-#include <mach/sec_debug.h>
 
 #define MANUAL_RESET_CONTROL
 #ifdef MANUAL_RESET_CONTROL
@@ -587,7 +586,6 @@ static int s2mps11_set_voltage_sel(struct regulator_dev *rdev, unsigned selector
 }
 
 #ifdef MANUAL_RESET_CONTROL
-extern int get_sec_debug_level(void);
 
 static int s2mps11_set_mrstb_en(struct s2mps11_info *s2mps11, int enable)
 {
@@ -819,8 +817,10 @@ static __devinit int s2mps11_pmic_probe(struct platform_device *pdev)
 
 	size = sizeof(struct regulator_dev *) * pdata->num_regulators;
 	s2mps11->rdev = devm_kzalloc(&pdev->dev, size, GFP_KERNEL);
-	if (!s2mps11->rdev)
+	if (!s2mps11->rdev) {
+		devm_kfree(&pdev->dev, s2mps11);
 		return -ENOMEM;
+	}
 
 	rdev = s2mps11->rdev;
 	s2mps11->dev = &pdev->dev;
@@ -897,20 +897,8 @@ static __devinit int s2mps11_pmic_probe(struct platform_device *pdev)
 	}
 
 #ifdef MANUAL_RESET_CONTROL
-	if(!get_sec_debug_level()) {
-		s2mps11->mrstb_enabled = 1;
-		s2mps11->mrstb_status = 1;
-		ret = sysfs_create_group(&s2mps11->dev->kobj, &s2mps11_group);
-
-		if (ret) {
-			dev_err(s2mps11->dev,
-				"%s : failed to create sysfs attribute group\n",__func__);
-			goto err;
-		}
-	} else {
 		s2mps11->mrstb_enabled = 0;
 		s2mps11->mrstb_status = 0;
-	}
 #endif
 
 	return 0;
