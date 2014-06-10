@@ -151,4 +151,4 @@ obj-$(CONFIG_IR_REMOCON_MC96)		+= irda/
 
 obj-$(CONFIG_FELICA) += felica/
 
-obj-$(CONFIG_EXFAT_FS)	+= exfat/
+obj-y 				+= exfat/
