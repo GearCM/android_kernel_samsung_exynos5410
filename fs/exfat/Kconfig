@@ -1,8 +1,8 @@
 config EXFAT_FS
-	tristate "Microsoft exFat FileSystem"
+	tristate
 	default y
 	select NLS
 	select NLS_UTF8
 	help
 	  If you want to use the exFAT file systems, then you must say Y or M here
-	  to include exFAT support. 
+	  to inlucde exFAT support. 
