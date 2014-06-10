@@ -151,4 +151,6 @@ obj-$(CONFIG_IR_REMOCON_MC96)		+= irda/
 
 obj-$(CONFIG_FELICA) += felica/
 
-obj-y 				+= exfat/
+ifeq (1, $(shell if [ -d ./drivers/exfat ]; then echo 1; fi))
+obj-y   += exfat/
+endif
