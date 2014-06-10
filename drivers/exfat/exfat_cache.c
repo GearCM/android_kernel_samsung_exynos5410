@@ -30,7 +30,7 @@ extern FS_STRUCT_T      fs_struct[];
 #define sm_V(s)
 
 static INT32 __FAT_read(struct super_block *sb, UINT32 loc, UINT32 *content);
-static INT32 __FAT_write(struct super_block *sb, UINT32 loc, UINT32 content);
+static void   __FAT_write(struct super_block *sb, UINT32 loc, UINT32 content);
 
 static BUF_CACHE_T *FAT_cache_find(struct super_block *sb, UINT32 sec);
 static BUF_CACHE_T *FAT_cache_get(struct super_block *sb, UINT32 sec);
@@ -118,17 +118,13 @@ INT32 FAT_read(struct super_block *sb, UINT32 loc, UINT32 *content)
 	return(ret);
 }
 
-INT32 FAT_write(struct super_block *sb, UINT32 loc, UINT32 content)
+void FAT_write(struct super_block *sb, UINT32 loc, UINT32 content)
 {
-	INT32 ret;
-
 	sm_P(&f_sem);
 
-	ret = __FAT_write(sb, loc, content);
+	__FAT_write(sb, loc, content);
 
 	sm_V(&f_sem);
-
-	return(ret);
 }
 
 static INT32 __FAT_read(struct super_block *sb, UINT32 loc, UINT32 *content)
@@ -145,19 +141,22 @@ static INT32 __FAT_read(struct super_block *sb, UINT32 loc, UINT32 *content)
 
 		if (off == (p_bd->sector_size-1)) {
 			fat_sector = FAT_getblk(sb, sec);
-			if (!fat_sector)
+			if
+			(!fat_sector)
 				return -1;
 
 			_content  = (UINT32) fat_sector[off];
 
 			fat_sector = FAT_getblk(sb, ++sec);
-			if (!fat_sector)
+			if
+			(!fat_sector)
 				return -1;
 
 			_content |= (UINT32) fat_sector[0] << 8;
 		} else {
 			fat_sector = FAT_getblk(sb, sec);
-			if (!fat_sector)
+			if
+			(!fat_sector)
 				return -1;
 
 			fat_entry = &(fat_sector[off]);
@@ -202,7 +201,8 @@ static INT32 __FAT_read(struct super_block *sb, UINT32 loc, UINT32 *content)
 		off = (loc << 2) & p_bd->sector_size_mask;
 
 		fat_sector = FAT_getblk(sb, sec);
-		if (!fat_sector)
+		if
+		(!fat_sector)
 			return -1;
 
 		fat_entry = &(fat_sector[off]);
@@ -223,7 +223,8 @@ static INT32 __FAT_read(struct super_block *sb, UINT32 loc, UINT32 *content)
 		off = (loc << 2) & p_bd->sector_size_mask;
 
 		fat_sector = FAT_getblk(sb, sec);
-		if (!fat_sector)
+		if
+		(!fat_sector)
 			return -1;
 
 		fat_entry = &(fat_sector[off]);
@@ -242,7 +243,7 @@ static INT32 __FAT_read(struct super_block *sb, UINT32 loc, UINT32 *content)
 	return 0;
 }
 
-static INT32 __FAT_write(struct super_block *sb, UINT32 loc, UINT32 content)
+static void __FAT_write(struct super_block *sb, UINT32 loc, UINT32 content)
 {
 	INT32 off;
 	UINT32 sec;
@@ -258,8 +259,6 @@ static INT32 __FAT_write(struct super_block *sb, UINT32 loc, UINT32 content)
 		off = (loc + (loc >> 1)) & p_bd->sector_size_mask;
 
 		fat_sector = FAT_getblk(sb, sec);
-		if (!fat_sector)
-			return -1;
 
 		if (loc & 1) { 
 
@@ -270,9 +269,6 @@ static INT32 __FAT_write(struct super_block *sb, UINT32 loc, UINT32 content)
 				FAT_modify(sb, sec);
 
 				fat_sector = FAT_getblk(sb, ++sec);
-				if (!fat_sector)
-					return -1;
-
 				fat_sector[0] = (UINT8)(content >> 8);
 			} else {
 				fat_entry = &(fat_sector[off]);
@@ -306,9 +302,6 @@ static INT32 __FAT_write(struct super_block *sb, UINT32 loc, UINT32 content)
 		off = (loc << 1) & p_bd->sector_size_mask;
 
 		fat_sector = FAT_getblk(sb, sec);
-		if (!fat_sector)
-			return -1;
-
 		fat_entry = &(fat_sector[off]);
 
 		SET16_A(fat_entry, content);
@@ -322,9 +315,6 @@ static INT32 __FAT_write(struct super_block *sb, UINT32 loc, UINT32 content)
 		off = (loc << 2) & p_bd->sector_size_mask;
 
 		fat_sector = FAT_getblk(sb, sec);
-		if (!fat_sector)
-			return -1;
-
 		fat_entry = &(fat_sector[off]);
 
 		content |= GET32_A(fat_entry) & 0xF0000000;
@@ -338,17 +328,13 @@ static INT32 __FAT_write(struct super_block *sb, UINT32 loc, UINT32 content)
 		off = (loc << 2) & p_bd->sector_size_mask;
 
 		fat_sector = FAT_getblk(sb, sec);
-		if (!fat_sector)
-			return -1;
-
 		fat_entry = &(fat_sector[off]);
 
 		SET32_A(fat_entry, content);
 	}
 
 	FAT_modify(sb, sec);
-	return 0;
-} 
+}
 
 UINT8 *FAT_getblk(struct super_block *sb, UINT32 sec)
 {
@@ -371,16 +357,8 @@ UINT8 *FAT_getblk(struct super_block *sb, UINT32 sec)
 
 	FAT_cache_insert_hash(sb, bp);
 
-	if (sector_read(sb, sec, &(bp->buf_bh), 1) != FFS_SUCCESS) {
-		FAT_cache_remove_hash(bp);
-		bp->drv = -1;
-		bp->sec = ~0;
-		bp->flag = 0;
-		bp->buf_bh = NULL;
-
-		move_to_lru(bp, &p_fs->FAT_cache_lru_list);
+	if (sector_read(sb, sec, &(bp->buf_bh), 1) != FFS_SUCCESS)
 		return NULL;
-	}
 
 	return(bp->buf_bh->b_data);
 }
@@ -409,10 +387,8 @@ void FAT_release_all(struct super_block *sb)
 			bp->sec = ~0;
 			bp->flag = 0;
 
-			if(bp->buf_bh) {
-				__brelse(bp->buf_bh);
-				bp->buf_bh = NULL;
-			}
+			__brelse(bp->buf_bh);
+			bp->buf_bh = NULL;
 		}
 		bp = bp->next;
 	}
@@ -450,10 +426,6 @@ static BUF_CACHE_T *FAT_cache_find(struct super_block *sb, UINT32 sec)
 	hp = &(p_fs->FAT_cache_hash_list[off]);
 	for (bp = hp->hash_next; bp != hp; bp = bp->hash_next) {
 		if ((bp->drv == p_fs->drv) && (bp->sec == sec)) {
-
-			WARN(!bp->buf_bh, "[EXFAT] FAT_cache has no bh. "
-					  "It will make system panic.\n");
-
 			touch_buffer(bp->buf_bh);
 			return(bp);
 		}
@@ -487,7 +459,7 @@ static void FAT_cache_insert_hash(struct super_block *sb, BUF_CACHE_T *bp)
 	bp->hash_prev = hp;
 	hp->hash_next->hash_prev = bp;
 	hp->hash_next = bp;
-}
+} 
 
 static void FAT_cache_remove_hash(BUF_CACHE_T *bp)
 {
@@ -506,7 +478,7 @@ UINT8 *buf_getblk(struct super_block *sb, UINT32 sec)
 	sm_V(&b_sem);
 
 	return(buf);
-} 
+}
 
 static UINT8 *__buf_getblk(struct super_block *sb, UINT32 sec)
 {
@@ -542,7 +514,7 @@ static UINT8 *__buf_getblk(struct super_block *sb, UINT32 sec)
 
 	return(bp->buf_bh->b_data);
 
-}
+} 
 
 void buf_modify(struct super_block *sb, UINT32 sec)
 {
@@ -551,14 +523,12 @@ void buf_modify(struct super_block *sb, UINT32 sec)
 	sm_P(&b_sem);
 
 	bp = buf_cache_find(sb, sec);
-	if (likely(bp != NULL)) {
+	if (bp != NULL) {
 		sector_write(sb, sec, bp->buf_bh, 0);
 	}
 
-	WARN(!bp, "[EXFAT] failed to find buffer_cache(sector:%u).\n", sec);
-
 	sm_V(&b_sem);
-} 
+}
 
 void buf_lock(struct super_block *sb, UINT32 sec)
 {
@@ -567,9 +537,7 @@ void buf_lock(struct super_block *sb, UINT32 sec)
 	sm_P(&b_sem);
 
 	bp = buf_cache_find(sb, sec);
-	if (likely(bp != NULL)) bp->flag |= LOCKBIT;
-
-	WARN(!bp, "[EXFAT] failed to find buffer_cache(sector:%u).\n", sec);
+	if (bp != NULL) bp->flag |= LOCKBIT;
 
 	sm_V(&b_sem);
 }
@@ -581,9 +549,7 @@ void buf_unlock(struct super_block *sb, UINT32 sec)
 	sm_P(&b_sem);
 
 	bp = buf_cache_find(sb, sec);
-	if (likely(bp != NULL)) bp->flag &= ~(LOCKBIT);
-
-	WARN(!bp, "[EXFAT] failed to find buffer_cache(sector:%u).\n", sec);
+	if (bp != NULL) bp->flag &= ~(LOCKBIT);
 
 	sm_V(&b_sem);
 }
@@ -596,15 +562,13 @@ void buf_release(struct super_block *sb, UINT32 sec)
 	sm_P(&b_sem);
 
 	bp = buf_cache_find(sb, sec);
-	if (likely(bp != NULL)) {
+	if (bp != NULL) {
 		bp->drv = -1;
 		bp->sec = ~0;
 		bp->flag = 0;
 
-		if(bp->buf_bh) {
-			__brelse(bp->buf_bh);
-			bp->buf_bh = NULL;
-		}
+		__brelse(bp->buf_bh);
+		bp->buf_bh = NULL;
 
 		move_to_lru(bp, &p_fs->buf_cache_lru_list);
 	}
@@ -626,10 +590,8 @@ void buf_release_all(struct super_block *sb)
 			bp->sec = ~0;
 			bp->flag = 0;
 
-			if(bp->buf_bh) {
-				__brelse(bp->buf_bh);
-				bp->buf_bh = NULL;
-			}
+			__brelse(bp->buf_bh);
+			bp->buf_bh = NULL;
 		}
 		bp = bp->next;
 	}
@@ -682,10 +644,9 @@ static BUF_CACHE_T *buf_cache_get(struct super_block *sb, UINT32 sec)
 	bp = p_fs->buf_cache_lru_list.prev;
 	while (bp->flag & LOCKBIT) bp = bp->prev;
 
-
 	move_to_mru(bp, &p_fs->buf_cache_lru_list);
 	return(bp);
-}
+} 
 
 static void buf_cache_insert_hash(struct super_block *sb, BUF_CACHE_T *bp)
 {
@@ -701,7 +662,7 @@ static void buf_cache_insert_hash(struct super_block *sb, BUF_CACHE_T *bp)
 	bp->hash_prev = hp;
 	hp->hash_next->hash_prev = bp;
 	hp->hash_next = bp;
-}
+} 
 
 static void buf_cache_remove_hash(BUF_CACHE_T *bp)
 {
