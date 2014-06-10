@@ -36,6 +36,8 @@ static UINT16 bad_dos_chars[] = {
 static UINT16 bad_uni_chars[] = {
 	0x0022,         0x002A, 0x002F, 0x003A,
 	0x003C, 0x003E, 0x003F, 0x005C, 0x007C,
+	0x201C, 0x201D, 0xFF0A, 0xFF0F, 0xFF1A,
+	0xFF1C, 0xFF1E, 0xFF1F, 0xFF3C, 0xFF5C,
 	0
 };
 
@@ -252,20 +254,22 @@ void nls_uniname_to_cstring(struct super_block *sb, UINT8 *p_cstring, UNI_NAME_T
 
 void nls_cstring_to_uniname(struct super_block *sb, UNI_NAME_T *p_uniname, UINT8 *p_cstring, INT32 *p_lossy)
 {
-	INT32 i, j, lossy = FALSE;
+	INT32 i, j, lossy = 0;
 	UINT8 *end_of_name;
 	UINT16 upname[MAX_NAME_LENGTH];
 	UINT16 *uniname = p_uniname->name;
 	struct nls_table *nls = EXFAT_SB(sb)->nls_io;
 
-	end_of_name = p_cstring + STRLEN((INT8 *) p_cstring);
+	while (*p_cstring == ' ') p_cstring++;
+
+	end_of_name = p_cstring + STRLEN(p_cstring);
 
 	while (*(--end_of_name) == ' ') {
 		if (end_of_name < p_cstring) break;
 	}
 	*(++end_of_name) = '\0';
 
-	if (STRCMP((INT8 *) p_cstring, ".") && STRCMP((INT8 *) p_cstring, "..")) {
+	if (STRCMP(p_cstring, ".") && STRCMP(p_cstring, "..")) {
 		while (*(--end_of_name) == '.') {
 			if (end_of_name < p_cstring) break;
 		}
@@ -273,7 +277,7 @@ void nls_cstring_to_uniname(struct super_block *sb, UNI_NAME_T *p_uniname, UINT8
 	}
 
 	if (*p_cstring == '\0')
-		lossy = TRUE;
+		SET_LOSSY(lossy, NLS_LOSSY_TOOSHORT);
 
 	i = j = 0;
 	while (j < (MAX_NAME_LENGTH-1)) {
@@ -282,7 +286,7 @@ void nls_cstring_to_uniname(struct super_block *sb, UNI_NAME_T *p_uniname, UINT8
 		i += convert_ch_to_uni(nls, uniname, (UINT8 *)(p_cstring+i), &lossy);
 
 		if ((*uniname < 0x0020) || WSTRCHR(bad_uni_chars, *uniname))
-			lossy = TRUE;
+			SET_LOSSY(lossy, NLS_LOSSY_ERROR);
 
 		*(upname+j) = nls_upper(sb, *uniname);
 
@@ -291,14 +295,13 @@ void nls_cstring_to_uniname(struct super_block *sb, UNI_NAME_T *p_uniname, UINT8
 	}
 
 	if (*(p_cstring+i) != '\0')
-		lossy = TRUE;
+		SET_LOSSY(lossy, NLS_LOSSY_TOOLONG);
 	*uniname = (UINT16) '\0';
 
 	p_uniname->name_len = j;
 	p_uniname->name_hash = calc_checksum_2byte((void *) upname, j<<1, 0, CS_DEFAULT);
 
-	if (p_lossy != NULL) 
-		*p_lossy = lossy;
+	if (p_lossy != NULL) *p_lossy = lossy;
 }
 
 static INT32 convert_ch_to_uni(struct nls_table *nls, UINT16 *uni, UINT8 *ch, INT32 *lossy)
@@ -315,7 +318,7 @@ static INT32 convert_ch_to_uni(struct nls_table *nls, UINT16 *uni, UINT8 *ch, IN
 	if ((len = nls->char2uni(ch, NLS_MAX_CHARSET_SIZE, uni)) < 0) {
 		printk("%s: fail to use nls \n", __func__);
 		if (lossy != NULL)
-			*lossy = TRUE;
+			SET_LOSSY(*lossy, NLS_LOSSY_CHAR_TO_UNI_ERROR);
 		*uni = (UINT16) '_';
 		if (!strcmp(nls->charset, "utf8")) return(1);
 		else return(2);

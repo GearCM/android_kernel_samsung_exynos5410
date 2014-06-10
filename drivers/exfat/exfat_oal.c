@@ -54,34 +54,20 @@ void sm_V(struct semaphore *sm)
 
 extern struct timezone sys_tz;
 
+#define SECS_PER_MIN     (60)
+#define SECS_PER_HOUR    (60 * 60)
+#define SECS_PER_DAY     (SECS_PER_HOUR * 24)
 #define UNIX_SECS_1980   315532800L
-
 #if BITS_PER_LONG == 64
 #define UNIX_SECS_2108   4354819200L
 #endif
+#define DAYS_DELTA       (365 * 10 + 2)
+#define YEAR_2100    120
+#define IS_LEAP_YEAR(y)  (!((y) & 3) && (y) != YEAR_2100)
 
-#define DAYS_DELTA_DECADE	(365 * 10 + 2)
-#define NO_LEAP_YEAR_2100    (120)
-#define IS_LEAP_YEAR(y)  (!((y) & 3) && (y) != NO_LEAP_YEAR_2100)
-
-#define SECS_PER_MIN     (60)
-#define SECS_PER_HOUR    (60 * SECS_PER_MIN)
-#define SECS_PER_DAY     (24 * SECS_PER_HOUR)
-
-#define MAKE_LEAP_YEAR(leap_year, year)                         \
-	do {                                                    \
-		if (unlikely(year > NO_LEAP_YEAR_2100))         \
-			leap_year = ((year + 3) / 4) - 1;       \
-		else                                            \
-			leap_year = ((year + 3) / 4);           \
-	} while(0)
-
-
-
-static time_t accum_days_in_year[] = {
-        0,   0, 31, 59, 90,120,151,181,212,243,273,304,334, 0, 0, 0,
+static time_t days_in_year[] = {
+	0,   0,  31,  59,  90, 120, 151, 181, 212, 243, 273, 304, 334, 0, 0, 0,
 };
-
 
 TIMESTAMP_T *tm_current(TIMESTAMP_T *tp)
 {
@@ -112,28 +98,29 @@ TIMESTAMP_T *tm_current(TIMESTAMP_T *tp)
 	}
 #endif
 
-	day = second / SECS_PER_DAY - DAYS_DELTA_DECADE;
+	day = second / SECS_PER_DAY - DAYS_DELTA;
 	year = day / 365;
-
-	MAKE_LEAP_YEAR(leap_day, year);
+	leap_day = (year + 3) / 4;
+	if (year > YEAR_2100)
+		leap_day--;
 	if (year * 365 + leap_day > day)
 		year--;
-
-	MAKE_LEAP_YEAR(leap_day, year);
-
+	leap_day = (year + 3) / 4;
+	if (year > YEAR_2100)
+		leap_day--;
 	day -= year * 365 + leap_day;
 
-	if (IS_LEAP_YEAR(year) && day == accum_days_in_year[3]) {
+	if (IS_LEAP_YEAR(year) && day == days_in_year[3]) {
 		month = 2;
 	} else {
-		if (IS_LEAP_YEAR(year) && day > accum_days_in_year[3])
+		if (IS_LEAP_YEAR(year) && day > days_in_year[3])
 			day--;
 		for (month = 1; month < 12; month++) {
-			if (accum_days_in_year[month + 1] > day)
+			if (days_in_year[month + 1] > day)
 				break;
 		}
 	}
-	day -= accum_days_in_year[month];
+	day -= days_in_year[month];
 
 	tp->sec  = second % SECS_PER_MIN;
 	tp->min  = (second / SECS_PER_MIN) % 60;

@@ -85,9 +85,9 @@ struct exfat_sb_info {
 struct exfat_inode_info {
 	FILE_ID_T fid;
 	char  *target;
-	loff_t mmu_private;    
-	loff_t i_pos;         
-	struct hlist_node i_hash_fat; 
+	loff_t mmu_private;  
+	loff_t i_pos;       
+	struct hlist_node i_fat_hash;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,00)
 	struct rw_semaphore truncate_lock;
 #endif
