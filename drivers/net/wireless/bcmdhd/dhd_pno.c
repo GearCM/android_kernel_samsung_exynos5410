@@ -87,11 +87,6 @@ static wlc_ssid_ext_t * dhd_pno_get_legacy_pno_ssid(dhd_pub_t *dhd,
 static inline bool
 is_dfs(uint16 channel)
 {
-	if (channel >= 52 && channel <= 64)			/* class 2 */
-		return TRUE;
-	else if (channel >= 100 && channel <= 144)	/* class 4 */
-		return TRUE;
-	else
 		return FALSE;
 }
 int
