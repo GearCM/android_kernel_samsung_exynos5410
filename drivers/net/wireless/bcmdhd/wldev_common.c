@@ -338,16 +338,13 @@ int wldev_set_band(
 int wldev_set_country(
 	struct net_device *dev, char *country_code, bool notify, bool user_enforced)
 {
-	int error = -1;
-	wl_country_t cspec = {{0}, 0, {0}};
 
-		country_code = "US";
-		cspec.ccode = "US";
-		cspec.country_abbrev = "US";
-		cspec.rev = 46;
-		dhd_bus_country_set(dev, &cspec, notify);
-		WLDEV_ERROR(("%s: set country for %s as %s rev %d\n",
-			__FUNCTION__, country_code, cspec.ccode, cspec.rev));
+	wl_country_t cspecnew;
+	country_code = "US";
+	cspecnew = {"US", 46, "US"};
+	dhd_bus_country_set(dev, &cspecnew, notify);
+	WLDEV_ERROR(("%s: set country for %s as %s rev %d\n",
+		__FUNCTION__, country_code, cspec.ccode, cspec.rev));
 
 	return 0;
 }
